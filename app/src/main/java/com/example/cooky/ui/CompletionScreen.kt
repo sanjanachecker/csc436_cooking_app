@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -16,8 +17,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun CompletionScreen(
-    onRestart: () -> Unit,
-    onExit: () -> Unit
+    onBackToRecipes: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -31,12 +31,11 @@ fun CompletionScreen(
             style = MaterialTheme.typography.headlineMedium
         )
         Spacer(modifier = Modifier.height(32.dp))
-        Button(onClick = onRestart) {
-            Text("Restart Recipe")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onExit) {
-            Text("Exit")
+        Button(
+            onClick = onBackToRecipes,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Back to recipes")
         }
     }
 }

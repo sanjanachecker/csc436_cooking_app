@@ -12,6 +12,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +39,16 @@ fun ActiveCookingStepScreen(
             return
         }
 
+        LaunchedEffect(currentIndex) {
+            recipeViewModel.speak(steps[currentIndex])
+        }
+
+        DisposableEffect(Unit) {
+            onDispose {
+                recipeViewModel.stopSpeaking()
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -45,6 +57,11 @@ fun ActiveCookingStepScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
+                text = "Step ${currentIndex + 1} of ${steps.size}",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
                 text = steps[currentIndex],
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
@@ -52,7 +69,7 @@ fun ActiveCookingStepScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Cooky is waiting for the user to say 'Next' (simulated)",
+                text = "Steps are read aloud. Use the buttons to go back, repeat, or continue.",
                 style = MaterialTheme.typography.bodySmall
             )
             Spacer(modifier = Modifier.height(32.dp))
@@ -60,13 +77,21 @@ fun ActiveCookingStepScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Button(onClick = { if (currentIndex > 0) currentIndex-- }) {
+                Button(onClick = {
+                    recipeViewModel.stopSpeaking()
+                    if (currentIndex > 0) currentIndex--
+                }) {
                     Text("Previous")
                 }
-                Button(onClick = { /* Functionality to repeat is implicit */ }) {
+                Button(onClick = {
+                    recipeViewModel.speak(steps[currentIndex])
+                }) {
                     Text("Repeat")
                 }
-                Button(onClick = { currentIndex++ }) {
+                Button(onClick = {
+                    recipeViewModel.stopSpeaking()
+                    currentIndex++
+                }) {
                     Text("Next")
                 }
             }
