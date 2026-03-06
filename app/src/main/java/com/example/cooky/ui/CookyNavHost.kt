@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -19,6 +20,12 @@ import com.example.cooky.viewmodel.RecipeViewModel
 fun CookyNavHost() {
     val navController = rememberNavController()
     val recipeViewModel: RecipeViewModel = viewModel()
+    val onlineRecipes by recipeViewModel.onlineRecipes.collectAsState()
+    val filteredOnlineRecipes by recipeViewModel.filteredOnlineRecipes.collectAsState()
+    val categories by recipeViewModel.categories.collectAsState()
+    val selectedLetter by recipeViewModel.selectedLetter.collectAsState()
+    val selectedCategory by recipeViewModel.selectedCategory.collectAsState()
+    val isLoadingOnline by recipeViewModel.isLoadingOnline.collectAsState()
     val context = LocalContext.current
     val prefs = remember { context.onboardingPreferences() }
     var hasCompletedOnboarding by remember { mutableStateOf(prefs.hasCompletedOnboarding()) }
@@ -36,12 +43,21 @@ fun CookyNavHost() {
         }
         composable("recipe_picker") {
             RecipePickerScreen(
+                onlineRecipes = filteredOnlineRecipes,
+                totalOnlineCount = onlineRecipes.size,
+                isLoadingOnline = isLoadingOnline,
+                categories = categories,
+                selectedLetter = selectedLetter,
+                selectedCategory = selectedCategory,
+                onLetterFilter = { recipeViewModel.setLetterFilter(it) },
+                onCategoryFilter = { recipeViewModel.setCategoryFilter(it) },
                 onSelectRecipe = { recipe ->
                     recipeViewModel.setRecipe(recipe)
                     navController.navigate("overview")
                 },
                 onPasteOwn = { navController.navigate("import") },
-                onHelp = { navController.navigate("help") }
+                onHelp = { navController.navigate("help") },
+                onRetryOnline = { recipeViewModel.refreshOnlineRecipes() }
             )
         }
         composable("help") {
