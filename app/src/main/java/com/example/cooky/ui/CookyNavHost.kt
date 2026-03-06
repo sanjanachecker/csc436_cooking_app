@@ -1,22 +1,58 @@
 package com.example.cooky.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.cooky.data.hasCompletedOnboarding
+import com.example.cooky.data.onboardingPreferences
+import com.example.cooky.data.setOnboardingComplete
 import com.example.cooky.viewmodel.RecipeViewModel
 
 @Composable
 fun CookyNavHost() {
     val navController = rememberNavController()
     val recipeViewModel: RecipeViewModel = viewModel()
+    val context = LocalContext.current
+    val prefs = remember { context.onboardingPreferences() }
+    var hasCompletedOnboarding by remember { mutableStateOf(prefs.hasCompletedOnboarding()) }
 
-    NavHost(navController = navController, startDestination = "import") {
+    NavHost(
+        navController = navController,
+        startDestination = if (hasCompletedOnboarding) "recipe_picker" else "onboarding"
+    ) {
+        composable("onboarding") {
+            OnboardingScreen(onComplete = {
+                prefs.setOnboardingComplete()
+                hasCompletedOnboarding = true
+                navController.navigate("recipe_picker") { popUpTo("onboarding") { inclusive = true } }
+            })
+        }
+        composable("recipe_picker") {
+            RecipePickerScreen(
+                onSelectRecipe = { recipe ->
+                    recipeViewModel.setRecipe(recipe)
+                    navController.navigate("overview")
+                },
+                onPasteOwn = { navController.navigate("import") },
+                onHelp = { navController.navigate("help") }
+            )
+        }
+        composable("help") {
+            OnboardingScreen(onComplete = { navController.popBackStack() })
+        }
         composable("import") {
-            RecipeImportScreen(recipeViewModel) {
-                navController.navigate("overview")
-            }
+            RecipeImportScreen(
+                recipeViewModel = recipeViewModel,
+                onRecipeAnalyzed = { navController.navigate("overview") },
+                onBack = { navController.popBackStack() }
+            )
         }
         composable("overview") {
             RecipeOverviewScreen(
@@ -26,9 +62,10 @@ fun CookyNavHost() {
             )
         }
         composable("ingredients") {
-            IngredientsPreparationScreen(recipeViewModel) {
-                navController.popBackStack()
-            }
+            IngredientsPreparationScreen(
+                recipeViewModel = recipeViewModel,
+                onBackToRecipe = { navController.popBackStack() }
+            )
         }
         composable("cooking") {
             ActiveCookingStepScreen(recipeViewModel) {
@@ -37,8 +74,11 @@ fun CookyNavHost() {
         }
         composable("completion") {
             CompletionScreen(
-                onRestart = { navController.navigate("import") { popUpTo("import") { inclusive = true } } },
-                onExit = { /* Add exit logic here */ }
+                onBackToRecipes = {
+                    navController.navigate("recipe_picker") {
+                        popUpTo("recipe_picker") { inclusive = true }
+                    }
+                }
             )
         }
     }
