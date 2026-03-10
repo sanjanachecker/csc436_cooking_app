@@ -3,9 +3,9 @@ package com.example.cooky.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,14 +24,19 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import com.example.cooky.data.Recipe
 import com.example.cooky.data.SampleRecipes
 
@@ -43,6 +48,8 @@ fun RecipePickerScreen(
     categories: List<String>,
     selectedLetter: String?,
     selectedCategory: String?,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     onLetterFilter: (String?) -> Unit,
     onCategoryFilter: (String?) -> Unit,
     onSelectRecipe: (Recipe) -> Unit,
@@ -51,6 +58,21 @@ fun RecipePickerScreen(
     onRetryOnline: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val trimmedQuery = searchQuery.trim()
+    val hasQuery = trimmedQuery.isNotEmpty()
+
+    val filteredOnlineRecipes = if (hasQuery) {
+        onlineRecipes.filter { it.title.contains(trimmedQuery, ignoreCase = true) }
+    } else {
+        onlineRecipes
+    }
+
+    val filteredSampleRecipes = if (hasQuery) {
+        SampleRecipes.list.filter { it.title.contains(trimmedQuery, ignoreCase = true) }
+    } else {
+        SampleRecipes.list
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -59,14 +81,26 @@ fun RecipePickerScreen(
                 .padding(16.dp)
                 .padding(bottom = 56.dp)
         ) {
-            Text(
-                text = "Choose a recipe",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-            )
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Choose a recipe",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                RecipeSearchBar(
+                    query = searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                    modifier = Modifier
+                        .padding(start = 16.dp)
+                        .weight(1f, fill = false)
+                )
+            }
 
             // Letter filter
             Text(
@@ -160,9 +194,9 @@ fun RecipePickerScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                onlineRecipes.isEmpty() -> {
+                filteredOnlineRecipes.isEmpty() -> {
                     Text(
-                        text = "No recipes match the selected filters.",
+                        text = "No recipes match the selected filters and search.",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(vertical = 16.dp)
                     )
@@ -174,12 +208,12 @@ fun RecipePickerScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        onlineRecipes.forEachIndexed { index, recipe ->
+                        filteredOnlineRecipes.forEachIndexed { index, recipe ->
                             RecipeRow(
                                 recipe = recipe,
                                 onClick = { onSelectRecipe(recipe) }
                             )
-                            if (index < onlineRecipes.lastIndex) {
+                            if (index < filteredOnlineRecipes.lastIndex) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -205,22 +239,30 @@ fun RecipePickerScreen(
                     .fillMaxWidth()
                     .padding(bottom = 8.dp)
             )
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                SampleRecipes.list.forEachIndexed { index, recipe ->
-                    RecipeRow(
-                        recipe = recipe,
-                        onClick = { onSelectRecipe(recipe) }
-                    )
-                    if (index < SampleRecipes.list.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            if (filteredSampleRecipes.isEmpty()) {
+                Text(
+                    text = "No sample recipes match the search.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    filteredSampleRecipes.forEachIndexed { index, recipe ->
+                        RecipeRow(
+                            recipe = recipe,
+                            onClick = { onSelectRecipe(recipe) }
                         )
+                        if (index < filteredSampleRecipes.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+                        }
                     }
                 }
             }
@@ -255,6 +297,33 @@ fun RecipePickerScreen(
             )
         }
     }
+}
+
+@Composable
+private fun RecipeSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        singleLine = true,
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = "Search recipes"
+            )
+        },
+        placeholder = {
+            Text(
+                text = "Search",
+                style = MaterialTheme.typography.bodySmall
+            )
+        },
+        modifier = modifier
+            .height(56.dp)
+    )
 }
 
 @Composable

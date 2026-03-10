@@ -2,10 +2,10 @@ package com.example.cooky.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -29,6 +29,7 @@ fun CookyNavHost() {
     val context = LocalContext.current
     val prefs = remember { context.onboardingPreferences() }
     var hasCompletedOnboarding by remember { mutableStateOf(prefs.hasCompletedOnboarding()) }
+    var searchQuery by remember { mutableStateOf("") }
 
     NavHost(
         navController = navController,
@@ -49,6 +50,8 @@ fun CookyNavHost() {
                 categories = categories,
                 selectedLetter = selectedLetter,
                 selectedCategory = selectedCategory,
+                 searchQuery = searchQuery,
+                 onSearchQueryChange = { searchQuery = it },
                 onLetterFilter = { recipeViewModel.setLetterFilter(it) },
                 onCategoryFilter = { recipeViewModel.setCategoryFilter(it) },
                 onSelectRecipe = { recipe ->
