@@ -26,8 +26,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -79,13 +79,15 @@ fun OnboardingScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = page.title,
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     Text(
                         text = page.body,
                         style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -117,12 +119,18 @@ fun OnboardingScreen(
                 }
             }
             if (isLastPage) {
-                Button(onClick = { onComplete() }) {
-                    Text("Get started")
+                Button(
+                    onClick = { onComplete() },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Get started", style = MaterialTheme.typography.labelLarge)
                 }
             } else {
-                Button(onClick = { pageIndex++ }) {
-                    Text("Next")
+                Button(
+                    onClick = { pageIndex++ },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Next", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
