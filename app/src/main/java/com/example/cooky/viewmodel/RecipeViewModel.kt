@@ -63,6 +63,9 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     private val _isLoadingOnline = MutableStateFlow(false)
     val isLoadingOnline: StateFlow<Boolean> = _isLoadingOnline.asStateFlow()
 
+    private val _isSpeaking = MutableStateFlow(false)
+    val isSpeaking: StateFlow<Boolean> = _isSpeaking.asStateFlow()
+
     private var tts: TextToSpeech? = null
 
     init {
@@ -131,17 +134,23 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun speak(text: String) {
-        viewModelScope.launch {
-            tts?.stop()
-            val params = Bundle().apply {
-                putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
-            }
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, null)
+        tts?.stop()
+        _isSpeaking.value = true
+        tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) { _isSpeaking.value = false }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) { _isSpeaking.value = false }
+        })
+        val params = Bundle().apply {
+            putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
         }
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "cooky_utterance")
     }
 
     fun stopSpeaking() {
         tts?.stop()
+        _isSpeaking.value = false
     }
 
     override fun onCleared() {
