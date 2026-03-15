@@ -46,7 +46,7 @@ fun RecipePickerScreen(
     totalOnlineCount: Int,
     isLoadingOnline: Boolean,
     categories: List<String>,
-    selectedLetter: String?,
+    selectedLetter: String,
     selectedCategory: String?,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
@@ -115,12 +115,6 @@ fun RecipePickerScreen(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
-                    selected = selectedLetter == null,
-                    onClick = { onLetterFilter(null) },
-                    label = { Text("All", style = MaterialTheme.typography.labelLarge) },
-                    shape = RoundedCornerShape(20.dp)
-                )
                 ('a'..'z').forEach { letter ->
                     val s = letter.toString()
                     FilterChip(
@@ -173,7 +167,7 @@ fun RecipePickerScreen(
                     .padding(top = 20.dp, bottom = 8.dp)
             )
             when {
-                isLoadingOnline && totalOnlineCount == 0 -> {
+                isLoadingOnline -> {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

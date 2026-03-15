@@ -106,6 +106,10 @@ interface ThemealdbApi {
     @GET("search.php")
     suspend fun searchByFirstLetter(@Query("f") letter: String): ThemealdbResponse
 
+    /** Search meals by name substring (global search). */
+    @GET("search.php")
+    suspend fun searchByName(@Query("s") name: String): ThemealdbResponse
+
     /** List all meal categories (Beef, Chicken, Dessert, etc.). */
     @GET("list.php")
     suspend fun listCategories(@Query("c") c: String = "list"): CategoriesListResponse

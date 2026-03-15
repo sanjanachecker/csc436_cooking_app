@@ -39,20 +39,20 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     private val _categories = MutableStateFlow<List<String>>(emptyList())
     val categories: StateFlow<List<String>> = _categories.asStateFlow()
 
-    private val _selectedLetter = MutableStateFlow<String?>(null)
-    val selectedLetter: StateFlow<String?> = _selectedLetter.asStateFlow()
+    // Current letter whose recipes are loaded (drives fetching).
+    private val _selectedLetter = MutableStateFlow<String>("a")
+    val selectedLetter: StateFlow<String> = _selectedLetter.asStateFlow()
 
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
+    // Client-side category filter over the fully loaded set for the current letter.
     val filteredOnlineRecipes: StateFlow<List<Recipe>> = combine(
         _onlineRecipes,
-        _selectedLetter,
         _selectedCategory
-    ) { recipes, letter, category ->
+    ) { recipes, category ->
         recipes.filter { recipe ->
-            (letter == null || recipe.title.getOrNull(0)?.lowercaseChar() == letter.single()) &&
-            (category == null || recipe.category == category)
+            category == null || recipe.category == category
         }
     }.stateIn(
         scope = viewModelScope,
@@ -63,8 +63,32 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     private val _isLoadingOnline = MutableStateFlow(false)
     val isLoadingOnline: StateFlow<Boolean> = _isLoadingOnline.asStateFlow()
 
+    // In-memory cache of recipes per starting letter for this app session.
+    private val letterCache: MutableMap<Char, List<Recipe>> = mutableMapOf()
+
     private val _isSpeaking = MutableStateFlow(false)
     val isSpeaking: StateFlow<Boolean> = _isSpeaking.asStateFlow()
+
+    // Global search state
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _searchResults = MutableStateFlow<List<Recipe>>(emptyList())
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
+    // Recipes shown in the UI: either global search results or per-letter filtered list
+    val displayedOnlineRecipes: StateFlow<List<Recipe>> = combine(
+        searchQuery,
+        _searchResults,
+        filteredOnlineRecipes
+    ) { query, search, byLetter ->
+        if (query.isNotBlank()) search else byLetter
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     private var tts: TextToSpeech? = null
 
@@ -82,7 +106,8 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
-        loadOnlineRecipes()
+        // Initial load: recipes starting with 'A' and all categories.
+        loadOnlineRecipesForCurrentLetter()
         loadCategories()
     }
 
@@ -92,10 +117,18 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun loadOnlineRecipes() {
+    private fun loadOnlineRecipesForCurrentLetter(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _isLoadingOnline.value = true
-            val recipes = repository.fetchOnlineRecipes()
+            val letterChar = _selectedLetter.value.firstOrNull() ?: 'a'
+            val cached = letterCache[letterChar]
+            val recipes = if (!forceRefresh && cached != null) {
+                cached
+            } else {
+                val fresh = repository.fetchOnlineRecipesForLetter(letterChar)
+                letterCache[letterChar] = fresh
+                fresh
+            }
             _onlineRecipes.value = recipes
             _isLoadingOnline.value = false
         }
@@ -103,15 +136,36 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Call to retry loading online recipes (e.g. after network error). */
     fun refreshOnlineRecipes() {
-        loadOnlineRecipes()
+        // Force a network fetch for the current letter and overwrite cache.
+        loadOnlineRecipesForCurrentLetter(forceRefresh = true)
     }
 
     fun setLetterFilter(letter: String?) {
-        _selectedLetter.value = letter
+        val normalized = letter?.lowercase()?.takeIf { it.isNotEmpty() } ?: "a"
+        if (_selectedLetter.value == normalized) return
+        _selectedLetter.value = normalized
+        loadOnlineRecipesForCurrentLetter()
     }
 
     fun setCategoryFilter(category: String?) {
         _selectedCategory.value = category
+    }
+
+    fun setSearchQuery(query: String) {
+        val trimmed = query.trim()
+        _searchQuery.value = trimmed
+
+        if (trimmed.isBlank()) {
+            _searchResults.value = emptyList()
+            _isSearching.value = false
+            return
+        }
+
+        viewModelScope.launch {
+            _isSearching.value = true
+            _searchResults.value = repository.searchRecipesByName(trimmed)
+            _isSearching.value = false
+        }
     }
 
     fun setRecipe(recipe: Recipe) {

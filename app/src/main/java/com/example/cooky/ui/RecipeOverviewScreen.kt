@@ -28,7 +28,7 @@ fun RecipeOverviewScreen(
     recipeViewModel: RecipeViewModel,
     onStartCooking: () -> Unit,
     onViewIngredients: () -> Unit,
-    onBack: () -> Unit
+        onBack: () -> Unit
 ) {
     val recipe by recipeViewModel.recipe.collectAsState()
 
