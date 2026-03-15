@@ -66,6 +66,30 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     // In-memory cache of recipes per starting letter for this app session.
     private val letterCache: MutableMap<Char, List<Recipe>> = mutableMapOf()
 
+    private val _isSpeaking = MutableStateFlow(false)
+    val isSpeaking: StateFlow<Boolean> = _isSpeaking.asStateFlow()
+
+    // Global search state
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _searchResults = MutableStateFlow<List<Recipe>>(emptyList())
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
+    // Recipes shown in the UI: either global search results or per-letter filtered list
+    val displayedOnlineRecipes: StateFlow<List<Recipe>> = combine(
+        searchQuery,
+        _searchResults,
+        filteredOnlineRecipes
+    ) { query, search, byLetter ->
+        if (query.isNotBlank()) search else byLetter
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
     private var tts: TextToSpeech? = null
 
     init {
@@ -127,6 +151,23 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
         _selectedCategory.value = category
     }
 
+    fun setSearchQuery(query: String) {
+        val trimmed = query.trim()
+        _searchQuery.value = trimmed
+
+        if (trimmed.isBlank()) {
+            _searchResults.value = emptyList()
+            _isSearching.value = false
+            return
+        }
+
+        viewModelScope.launch {
+            _isSearching.value = true
+            _searchResults.value = repository.searchRecipesByName(trimmed)
+            _isSearching.value = false
+        }
+    }
+
     fun setRecipe(recipe: Recipe) {
         _recipe.value = recipe
     }
@@ -147,17 +188,23 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun speak(text: String) {
-        viewModelScope.launch {
-            tts?.stop()
-            val params = Bundle().apply {
-                putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
-            }
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, null)
+        tts?.stop()
+        _isSpeaking.value = true
+        tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) { _isSpeaking.value = false }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) { _isSpeaking.value = false }
+        })
+        val params = Bundle().apply {
+            putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
         }
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, "cooky_utterance")
     }
 
     fun stopSpeaking() {
         tts?.stop()
+        _isSpeaking.value = false
     }
 
     override fun onCleared() {

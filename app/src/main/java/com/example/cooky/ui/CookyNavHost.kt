@@ -1,11 +1,11 @@
 package com.example.cooky.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -21,10 +21,12 @@ fun CookyNavHost() {
     val navController = rememberNavController()
     val recipeViewModel: RecipeViewModel = viewModel()
     val onlineRecipes by recipeViewModel.onlineRecipes.collectAsState()
-    val filteredOnlineRecipes by recipeViewModel.filteredOnlineRecipes.collectAsState()
+    val displayedOnlineRecipes by recipeViewModel.displayedOnlineRecipes.collectAsState()
     val categories by recipeViewModel.categories.collectAsState()
     val selectedLetter by recipeViewModel.selectedLetter.collectAsState()
     val selectedCategory by recipeViewModel.selectedCategory.collectAsState()
+    val searchQuery by recipeViewModel.searchQuery.collectAsState()
+    val isSearching by recipeViewModel.isSearching.collectAsState()
     val isLoadingOnline by recipeViewModel.isLoadingOnline.collectAsState()
     val context = LocalContext.current
     val prefs = remember { context.onboardingPreferences() }
@@ -43,12 +45,14 @@ fun CookyNavHost() {
         }
         composable("recipe_picker") {
             RecipePickerScreen(
-                onlineRecipes = filteredOnlineRecipes,
+                onlineRecipes = displayedOnlineRecipes,
                 totalOnlineCount = onlineRecipes.size,
-                isLoadingOnline = isLoadingOnline,
+                isLoadingOnline = if (searchQuery.isBlank()) isLoadingOnline else isSearching,
                 categories = categories,
                 selectedLetter = selectedLetter,
                 selectedCategory = selectedCategory,
+                searchQuery = searchQuery,
+                onSearchQueryChange = { recipeViewModel.setSearchQuery(it) },
                 onLetterFilter = { recipeViewModel.setLetterFilter(it) },
                 onCategoryFilter = { recipeViewModel.setCategoryFilter(it) },
                 onSelectRecipe = { recipe ->
@@ -75,11 +79,7 @@ fun CookyNavHost() {
                 recipeViewModel = recipeViewModel,
                 onStartCooking = { navController.navigate("cooking") },
                 onViewIngredients = { navController.navigate("ingredients") },
-                onBackToRecipes = {
-                    navController.navigate("recipe_picker") {
-                        popUpTo("recipe_picker") { inclusive = true }
-                    }
-                }
+                onBack = { navController.popBackStack() }
             )
         }
         composable("ingredients") {
@@ -92,7 +92,7 @@ fun CookyNavHost() {
             ActiveCookingStepScreen(
                 recipeViewModel = recipeViewModel,
                 onRecipeComplete = { navController.navigate("completion") },
-                onBackToRecipes = {
+                onExit = {
                     navController.navigate("recipe_picker") {
                         popUpTo("recipe_picker") { inclusive = true }
                     }

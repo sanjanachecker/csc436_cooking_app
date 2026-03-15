@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,30 +42,41 @@ fun RecipeImportScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start
         ) {
-            Button(onClick = onBack) {
-                Text("Back")
+            FilledTonalButton(
+                onClick = onBack,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Back", style = MaterialTheme.typography.labelLarge)
             }
         }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
-            verticalArrangement = Arrangement.Center,
+                .padding(top = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Text(
+                text = "Paste your recipe",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                label = { Text("Paste recipe URL or text") },
+                label = { Text("URL or recipe text") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
             )
-            Button(onClick = {
-                recipeViewModel.parseAndSetRecipe(text)
-                onRecipeAnalyzed()
-            }) {
-                Text("Analyze Recipe")
+            Button(
+                onClick = {
+                    recipeViewModel.parseAndSetRecipe(text)
+                    onRecipeAnalyzed()
+                },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Analyze Recipe", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
