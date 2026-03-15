@@ -28,7 +28,8 @@ import com.example.cooky.viewmodel.RecipeViewModel
 @Composable
 fun ActiveCookingStepScreen(
     recipeViewModel: RecipeViewModel,
-    onRecipeComplete: () -> Unit
+    onRecipeComplete: () -> Unit,
+    onBackToRecipes: () -> Unit
 ) {
     val recipe by recipeViewModel.recipe.collectAsState()
     var currentIndex by remember { mutableStateOf(0) }
@@ -94,6 +95,16 @@ fun ActiveCookingStepScreen(
                 }) {
                     Text("Next")
                 }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = {
+                    recipeViewModel.stopSpeaking()
+                    onBackToRecipes()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Back to recipes")
             }
         }
     }

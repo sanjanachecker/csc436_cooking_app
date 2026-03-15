@@ -74,7 +74,12 @@ fun CookyNavHost() {
             RecipeOverviewScreen(
                 recipeViewModel = recipeViewModel,
                 onStartCooking = { navController.navigate("cooking") },
-                onViewIngredients = { navController.navigate("ingredients") }
+                onViewIngredients = { navController.navigate("ingredients") },
+                onBackToRecipes = {
+                    navController.navigate("recipe_picker") {
+                        popUpTo("recipe_picker") { inclusive = true }
+                    }
+                }
             )
         }
         composable("ingredients") {
@@ -84,9 +89,15 @@ fun CookyNavHost() {
             )
         }
         composable("cooking") {
-            ActiveCookingStepScreen(recipeViewModel) {
-                navController.navigate("completion")
-            }
+            ActiveCookingStepScreen(
+                recipeViewModel = recipeViewModel,
+                onRecipeComplete = { navController.navigate("completion") },
+                onBackToRecipes = {
+                    navController.navigate("recipe_picker") {
+                        popUpTo("recipe_picker") { inclusive = true }
+                    }
+                }
+            )
         }
         composable("completion") {
             CompletionScreen(

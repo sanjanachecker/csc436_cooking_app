@@ -7,14 +7,13 @@ import kotlinx.coroutines.withContext
 class RecipeRepository(
     private val api: ThemealdbApi
 ) {
-    suspend fun fetchOnlineRecipes(maxPerLetter: Int = 30): List<Recipe> = withContext(Dispatchers.IO) {
+    /**
+     * Returns a full set for selected letter; caller can cache per-letter results.
+     */
+    suspend fun fetchOnlineRecipesForLetter(letter: Char): List<Recipe> = withContext(Dispatchers.IO) {
         runCatching {
-            val letters = ('a'..'z').map { it.toString() }
-            val allMeals = letters.flatMap { letter ->
-                val response = api.searchByFirstLetter(letter)
-                response.meals.orEmpty()
-            }
-            allMeals
+            val response = api.searchByFirstLetter(letter.toString())
+            response.meals.orEmpty()
                 .distinctBy { it.idMeal }
                 .mapNotNull { meal ->
                     val title = meal.strMeal?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null

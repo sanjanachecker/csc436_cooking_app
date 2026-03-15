@@ -22,7 +22,8 @@ import com.example.cooky.viewmodel.RecipeViewModel
 fun RecipeOverviewScreen(
     recipeViewModel: RecipeViewModel,
     onStartCooking: () -> Unit,
-    onViewIngredients: () -> Unit
+    onViewIngredients: () -> Unit,
+    onBackToRecipes: () -> Unit
 ) {
     val recipe by recipeViewModel.recipe.collectAsState()
 
@@ -51,6 +52,10 @@ fun RecipeOverviewScreen(
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onViewIngredients) {
             Text("View Ingredients")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onBackToRecipes) {
+            Text("Back to recipes")
         }
     }
 }
